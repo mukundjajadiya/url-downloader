@@ -1,6 +1,6 @@
 from file_downloader import FileDownloader
 
-url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
+url = "Enter your url here ......"
 
 urlfile = FileDownloader(url= url)
 urlfile.downlod_file()

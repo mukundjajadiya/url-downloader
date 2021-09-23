@@ -1,8 +1,10 @@
 import requests
 import os
+import time
 
 # import custum libraries
-from clint.textui import progress
+from tqdm import tqdm
+
 
 class FileDownloader():
     def __init__(self, url, custom_path='media', custom_filename=None):
@@ -18,8 +20,7 @@ class FileDownloader():
     def downlod_file(self):
         try:
             data = requests.get(self.url)
-            self.content_length = int(data.headers.get('content-length'))
-            print(self.content_length)
+            self.content_length = int(data.headers.get('content-length', 0))
             if data.status_code == 200:
                 # create directory if not exists
                 if not os.path.exists(os.path.join(self.custom_path, self.filetype)):
@@ -43,12 +44,16 @@ class FileDownloader():
                     full_path = os.path.join(
                         self.custom_path, self.filetype, self.filename)
 
+                total_size_in_bytes= self.content_length
+                block_size = 1024 #1 Kibibyte
+                progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
                 with open(f'{full_path}', 'wb') as f:
-                    # f.write(data.content)
-                    for chunk in progress.bar(data.iter_content(chunk_size=1024), expected_size=(self.content_length/1024) +1): 
-                        if chunk:
-                            f.write(chunk)
-                            f.flush()
+                    for d in data.iter_content(block_size):
+                        progress_bar.update(len(d))
+                        f.write(d)
+                progress_bar.close()
+                if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+                    print("[WARNING] something went wrong with progress bar size.")
 
                 print(
                     f"\n[SUCCESS] {self.filetype} file created successfully at: \n\t[FILE_NAME] {full_path}")
