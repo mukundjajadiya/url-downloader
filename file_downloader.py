@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 
 class FileDownloader():
-    def __init__(self, url, custom_path='media', custom_filename=None):
+    def __init__(self, url, custom_path='media', custom_filename=''):
         self.url = url
         self.filename = url.split('/')[-1]
         self.filetype = self.filename.split('.')[-1]
@@ -19,8 +19,9 @@ class FileDownloader():
 
     def downlod_file(self):
         try:
-            data = requests.get(self.url)
-            self.content_length = int(data.headers.get('content-length', 0))
+            data = requests.get(self.url, stream=True)
+            self.content_length = int(data.headers.get('content-length'))
+
             if data.status_code == 200:
                 # create directory if not exists
                 if not os.path.exists(os.path.join(self.custom_path, self.filetype)):
@@ -44,23 +45,18 @@ class FileDownloader():
                     full_path = os.path.join(
                         self.custom_path, self.filetype, self.filename)
 
-                total_size_in_bytes= self.content_length
-                block_size = 1024 #1 Kibibyte
-                progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
                 with open(f'{full_path}', 'wb') as f:
-                    for d in data.iter_content(block_size):
-                        progress_bar.update(len(d))
-                        f.write(d)
-                progress_bar.close()
-                if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-                    print("[WARNING] something went wrong with progress bar size.")
+                    with tqdm(total=self.content_length, desc='Downloading', unit="B", unit_divisor=1024, unit_scale=True) as pbar:
+                        for chunk in data.iter_content(chunk_size=4096):
+                            f.write(chunk)
+                            pbar.update(len(chunk))
 
                 print(
                     f"\n[SUCCESS] {self.filetype} file created successfully at: \n\t[FILE_NAME] {full_path}")
             else:
                 print(
                     f"\n[URL NOT_VALID] chack your URL: \n\t[URL = {self.url}]")
-                    
+
         except Exception as e:
             print(f"[ERROR] {e}.")
             return
